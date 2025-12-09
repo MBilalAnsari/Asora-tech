@@ -54,7 +54,7 @@ class AuthController {
         'PASSWORD_RESET'
       );
 
-      // await emailService.sendOtpEmail(email, otpCode);
+      await emailService.sendOtpEmail(email, otpCode);
 
       res.json({
         message: "OTP Sent Successfully.",
