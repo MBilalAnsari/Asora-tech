@@ -2,6 +2,7 @@ import UserService from "../services/UserService.js";
 import OtpService from "../services/otpService.js";
 import User from "../models/User.js";
 import resetTokenServices from "../services/resetTokenServices.js";
+import emailService from "../services/emailService.js";
 
 class AuthController {
   async signup(req, res) {
@@ -58,7 +59,6 @@ class AuthController {
 
       res.json({
         message: "OTP Sent Successfully.",
-        otpCode,
         newOtp: newOtp.otpCode // For testing purpose only
       });
     } catch (error) {
