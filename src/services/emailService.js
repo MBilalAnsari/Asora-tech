@@ -17,11 +17,11 @@ const sendOtpEmail = async (toEmail, otpCode) => {
         from: process.env.EMAIL_USER, 
         to: toEmail, 
         subject: 'Password Reset OTP', 
-        text: `Aapka Password Reset OTP code hai: ${otpCode}. Ye 2 minute mein expire ho jayega.`,
+        text: `Your Password Reset OTP code is: ${otpCode}. It will expire in 2 minutes.`,
         html: `
-            <p>Aapke Password Reset ke liye OTP code neeche diya gaya hai:</p>
+            <p>Your OTP code for Password Reset is given below:</p>
             <h2><b>${otpCode}</b></h2>
-            <p>Ye code <b>2 minutes</b> mein expire ho jayega. Agar aapne yeh request nahi ki, toh is email ko ignore kar dein.</p>
+            <p>This code will expire in <b>2 minutes</b>. If you did not request this, please ignore this email.</p>
         `,
     };
 
@@ -30,7 +30,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
         console.log('OTP Email successfully sent to ' + toEmail);
     } catch (error) {
         console.error('Error sending email:', error.message);
-        throw new Error('Email bhejte waqt galti hui');
+        throw new Error('Error while sending email');
     }
 };
 
