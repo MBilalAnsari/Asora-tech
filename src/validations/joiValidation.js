@@ -33,7 +33,7 @@ export const signupSchema = Joi.object({
         .required().messages({
             'string.pattern.base': 'Password must contain at least one uppercase letter and one special character'
         }),
-    emiratesId: Joi.number().required(),
+    // emiratesId: Joi.number().required(),
     brokerNumber: Joi.number().required(),
 });
 

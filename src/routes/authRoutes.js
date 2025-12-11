@@ -11,6 +11,7 @@ const otpLimiter = createRateLimiter(60 * 1000, 3, "Too many OTP requests.");
 const resetPasswordLimiter = createRateLimiter(15 * 60 * 1000, 5, "Too many password reset attempts.");
 
 router.post("/google", AuthController.google);
+
 router.post("/signup", validationMiddleware(signupSchema), AuthController.signup);
 router.post("/login", loginLimiter, validationMiddleware(loginSchema), AuthController.login);
 router.post("/verify-otp", otpLimiter, validationMiddleware(verifyOtpSchema), AuthController.verifyOtp);

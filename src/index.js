@@ -30,25 +30,25 @@ app.use(rateLimit({
   max: 100
 }));
 
-app.use((req, res, next) => {
-  if (req.body) {
-    for (let key in req.body) {
-      if (typeof req.body[key] === "string") {
-        req.body[key] = xss(req.body[key]);
-      }
-    }
-  } else {
-    error.message = "No request body found";
-    return res.status(400).json({ message: error.message });
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   if (req.body) {
+//     for (let key in req.body) {
+//       if (typeof req.body[key] === "string") {
+//         req.body[key] = xss(req.body[key]);
+//       }
+//     }
+//   } else {
+//     error.message = "No request body found";
+//     return res.status(400).json({ message: error.message });
+//   }
+//   next();
+// });
 
 app.get("/", (req, res) => {
   res.send("its..... Good to go!");
 });
 
-app.use("/", indexRoutes);
+app.use("/", indexRoutes);  
 app.use(errorHandler);
 
 
