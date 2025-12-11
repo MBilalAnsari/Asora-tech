@@ -1,20 +1,19 @@
-import User from "../models/User.js";
+import User from "../../models/User.js";
 import bcrypt from "bcrypt";
-import { generateToken } from "../utils/generateToken.js";
+import { generateToken } from "../../utils/generateToken.js";
 import { OAuth2Client } from "google-auth-library";
-import dotenv from "dotenv";
-
+import AppError from "../../utils/AppError.js";
 
 class UserService {
   async signup(userData) {
-    const { fullName, email, phone, password, emiratesId, brokerNumber } = userData;
+    const { fullName, email, phone, password, brokerNumber } = userData;
 
     // Check all credentials in one query
     const existingUser = await User.findOne({
       $or: [
         { email },
         { phone },
-        { emiratesId },
+        // { emiratesId },
         { brokerNumber }
       ]
     });
@@ -22,14 +21,14 @@ class UserService {
     if (existingUser) {
       // Generic error for email and phone
       if (existingUser.email === email || existingUser.phone === phone) {
-        throw new Error("Credentials already exists");
+        throw new AppError("Credentials already exists", 409);
       }
 
-      if (existingUser.emiratesId === emiratesId) {
-        throw new Error("Emirates ID already exists");
-      }
+      // if (existingUser.emiratesId === emiratesId) {
+      //   throw new Error("Emirates ID already exists");
+      // }
       if (existingUser.brokerNumber === brokerNumber) {
-        throw new Error("Broker number already exists");
+        throw new AppError("Broker number already exists", 409);
       }
     }
 
@@ -40,7 +39,7 @@ class UserService {
       email,
       phone,
       password: hashed,
-      emiratesId,
+      // emiratesId,
       brokerNumber
     });
 
@@ -54,13 +53,13 @@ class UserService {
 
     const user = await User.findOne({ email });
     if (!user) {
-      throw new Error("User not found");
+      throw new AppError("User not found", 404);
     }
 
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
-      throw new Error("Incorrect password");
+      throw new AppError("Incorrect password", 401);
     }
 
     const token = generateToken(user._id);
@@ -85,8 +84,8 @@ class UserService {
 
       if (!user) {
         // Auto signup
-        user = await User.create({ 
-          fullName: name, 
+        user = await User.create({
+          fullName: name,
           email,
           googleId,
           picture,
@@ -100,10 +99,14 @@ class UserService {
       return { user, token };
     } catch (error) {
       console.error("Error verifying Google ID token:", error);
-      throw new Error("Invalid Google ID token");
+      throw new AppError("Invalid Google ID token", 401);
     }
   }
 
+  async updatePassword(userId, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(userId, { password: hashedPassword });
+  }
 }
 
 export default new UserService();

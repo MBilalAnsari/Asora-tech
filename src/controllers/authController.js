@@ -1,53 +1,69 @@
-import UserService from "../services/UserService.js";
-import OtpService from "../services/otpService.js";
+import UserService from "../services/user/user.service.js";
+import OtpService from "../services/auth/otp.service.js";
 import User from "../models/User.js";
-import resetTokenServices from "../services/resetTokenServices.js";
-import emailService from "../services/emailService.js";
+import resetTokenServices from "../services/auth/resetToken.service.js";
+import emailService from "../services/shared/email.service.js";
+import AppError from "../utils/AppError.js";
+import { sanitizeUser } from "../utils/responseHelper.js";
 
 class AuthController {
-  async signup(req, res) {
+  async signup(req, res, next) {
     try {
       const { user, token } = await UserService.signup(req.body);
-      res.status(201).json({ message: "User created successfully", token });
+      const sanitizedUser = sanitizeUser(user);
+      res.status(201).json({
+        message: "User created successfully",
+        token,
+        user: sanitizedUser
+      });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      next(new AppError(error.message, 400));
     }
   }
 
-  async login(req, res) {
+  async login(req, res, next) {
     try {
       const { user, token } = await UserService.login(req.body);
-      res.json({ message: "Login successful", token });
+      const sanitizedUser = sanitizeUser(user);
+      res.json({
+        message: "Login successful",
+        token,
+        user: sanitizedUser
+      });
     } catch (error) {
-      res.status(401).json({ message: error.message });
+      next(new AppError(error.message, 401));
     }
   }
 
-  async google(req, res) {
+  async google(req, res, next) {
     try {
       const { idToken } = req.body;
 
       if (!idToken) {
-        return res.status(400).json({ message: "idToken is required" });
+        return next(new AppError("idToken is required", 400));
       }
 
       const { user, token } = await UserService.googleAuth(idToken);
+      const sanitizedUser = sanitizeUser(user);
 
-      res.json({ message: "Google login successful", token, user });
-
+      res.json({
+        message: "Google login successful",
+        token,
+        user: sanitizedUser
+      });
     } catch (error) {
-      res.status(500).json({ message: "Google authentication failed", error: error.message });
+      next(new AppError(error.message, 500));
     }
   }
 
-  async forgotPasswordRequest(req, res) {
+  async forgotPasswordRequest(req, res, next) {
     try {
       const { email } = req.body;
 
       const user = await User.findOne({ email });
 
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return next(new AppError("User not found", 404));
       }
 
       const { otpCode, newOtp } = await OtpService.createNewOtp(
@@ -59,29 +75,58 @@ class AuthController {
 
       res.json({
         message: "OTP Sent Successfully.",
-        newOtp: newOtp.otpCode // For testing purpose only
+        email: user.email,
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(new AppError(error.message, 500));
     }
   }
 
-  async verifyOtp(req, res) {
+  async verifyOtp(req, res, next) {
     try {
-      const { userId, type, enteredOtp } = req.body;
+      const { email, type, enteredOtp } = req.body;
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return next(new AppError("User not found", 404));
+      }
+
+      const userId = user._id;
+
       const result = await OtpService.verifyOtp(userId, type, enteredOtp);
 
       if (!result.status) {
-        return res.status(400).json({ message: result.message });
+        return next(new AppError(result.message, 400));
       }
+
       const resetToken = await resetTokenServices.generateResetToken(userId);
 
       res.json({ message: result.message, resetToken });
-
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(new AppError(error.message, 500));
     }
-  } 
+  }
+
+  async resetPassword(req, res, next) {
+    try {
+      const { resetToken, newPassword } = req.body;
+
+      const record = await resetTokenServices.verifyResetToken(resetToken);
+
+      if (!record) {
+        return next(new AppError("Invalid or expired reset token", 400));
+      }
+
+      await UserService.updatePassword(record.userId, newPassword);
+
+      await resetTokenServices.consumeToken(resetToken);
+
+      res.json({ message: "Password reset successful" });
+    } catch (error) {
+      next(new AppError(error.message, 500));
+    }
+  }
+
 }
 
 export default new AuthController();

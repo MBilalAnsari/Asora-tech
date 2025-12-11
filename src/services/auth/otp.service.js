@@ -1,6 +1,6 @@
-import OtpVerification from "../models/otpVerification.js";
+import OtpVerification from "../../models/otpVerification.js";
 import crypto from "crypto";
-import User from "../models/User.js";
+import User from "../../models/User.js";
 
 class OtpService {
 
@@ -20,7 +20,8 @@ class OtpService {
             .update(otpCode)
             .digest("hex");
 
-        console.log("Generated OTP:", otpCode, hashedOtp);
+        // console.log("Generated OTP:", hashedOtp);
+
         const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
         const newOtp = await OtpVerification.create({
@@ -35,19 +36,26 @@ class OtpService {
 
     async verifyOtp(userId, type, enteredOtp) {
 
+        enteredOtp = String(enteredOtp).trim();
+        console.log("TRIMMED ENTERED OTP:", enteredOtp);
+
+        // console.log("Verifying OTP for User ID:", userId, "Type:", type, "Entered OTP:", enteredOtp);
         const hashedEnteredOtp = crypto
             .createHash("sha256")
             .update(enteredOtp)
             .digest("hex");
 
-        console.log("Hashed Entered OTP:", hashedEnteredOtp);
+
 
         const otpRecord = await OtpVerification.findOne({
             userId,
-            type,
+            type: type.toUpperCase(),
             otpCode: hashedEnteredOtp,
             expiresAt: { $gt: Date.now() }
         });
+
+
+        console.log("OTP Record Found:", otpRecord, hashedEnteredOtp);
 
         if (!otpRecord) {
             return { status: false, message: "Invalid or expired OTP" };
@@ -58,7 +66,7 @@ class OtpService {
 
         return { status: true, message: "OTP verified successfully" };
     }
-    
+
 
 
 }
